@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vishvananda/netlink/nl"
+	"github.com/realssd/netlink/nl"
 	"github.com/vishvananda/netns"
 )
 

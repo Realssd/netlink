@@ -3,7 +3,7 @@ package netlink
 import (
 	"errors"
 
-	"github.com/vishvananda/netlink/nl"
+	"github.com/realssd/netlink/nl"
 	"golang.org/x/sys/unix"
 )
 

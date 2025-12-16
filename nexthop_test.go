@@ -63,6 +63,24 @@ func TestNexthopAddListDelReplace(t *testing.T) {
 		Protocol: unix.RTPROT_BGP,
 	}
 
+	nhGrp := []*NexthopGroupItem{
+		{
+			ID:        nh0.ID,
+			WeighHigh: 1,
+			Weight:    1,
+		},
+		{
+			ID:        nh1.ID,
+			WeighHigh: 2,
+			Weight:    1,
+		},
+	}
+
+	nh3 := &Nexthop{
+		ID:    3,
+		Group: nhGrp,
+	}
+
 	// Test NexthopAdd
 	if err = NexthopAdd(nh0); err != nil {
 		t.Fatal(err)
@@ -72,12 +90,16 @@ func TestNexthopAddListDelReplace(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if err = NexthopAdd(nh3); err != nil {
+		t.Fatal(err)
+	}
+
 	// Test NexthopList
 	nhs, err := NexthopList()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(nhs) != 2 {
+	if len(nhs) != 3 {
 		t.Fatalf("Expected 2 nexthop, got %d", len(nhs))
 	}
 

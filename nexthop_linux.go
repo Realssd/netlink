@@ -176,6 +176,33 @@ var nexthopAttrHandlers = map[uint16]struct {
 			}
 		},
 	},
+	unix.NHA_GROUP: {
+		encode: func(nh *Nexthop) *nl.RtAttr {
+			if nh.Group != nil {
+				b := make([]byte, len(nh.Group)*8)
+				for i, item := range nh.Group {
+					native.PutUint32(b[8*i:], item.ID)
+					b[8*i+1] = item.Weight
+					b[8*i+2] = item.WeighHigh
+				}
+				return nl.NewRtAttr(unix.NHA_GROUP, b)
+			}
+			return nil
+		},
+		decode: func(nh *Nexthop, attr *nl.RtAttr) {
+			if len(attr.Data) != 0 {
+				index := 0
+				for index < len(attr.Data) {
+					item := new(NexthopGroupItem)
+					item.ID = native.Uint32(attr.Data[index:])
+					item.Weight = attr.Data[index+1]
+					item.WeighHigh = attr.Data[index+2]
+					index += 8
+					nh.Group = append(nh.Group, item)
+				}
+			}
+		},
+	},
 }
 
 // encodeNexthopAttrs encodes the attributes in the Nexthop into the slice of
@@ -255,6 +282,7 @@ func prepareNewNexthop(nh *Nexthop, req *nl.NetlinkRequest, msg *nl.Nhmsg) error
 		unix.NHA_BLACKHOLE,
 		unix.NHA_OIF,
 		unix.NHA_GATEWAY,
+		unix.NHA_GROUP,
 	})...)
 
 	msg.Family = deriveFamilyFromNexthop(nh)

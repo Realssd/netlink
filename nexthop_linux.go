@@ -2,6 +2,7 @@ package netlink
 
 import (
 	"errors"
+	"fmt"
 	"net"
 
 	"github.com/realssd/netlink/nl"
@@ -181,10 +182,11 @@ var nexthopAttrHandlers = map[uint16]struct {
 			if nh.Group != nil {
 				b := make([]byte, len(nh.Group)*8)
 				for i, item := range nh.Group {
-					native.PutUint32(b[8*i:], item.ID)
-					b[8*i+1] = item.Weight
-					b[8*i+2] = item.WeighHigh
+					native.PutUint32(b[8*i:8*i+4], item.ID)
+					b[8*i+4] = item.Weight
+					b[8*i+5] = item.WeighHigh
 				}
+
 				return nl.NewRtAttr(unix.NHA_GROUP, b)
 			}
 			return nil
@@ -194,9 +196,9 @@ var nexthopAttrHandlers = map[uint16]struct {
 				index := 0
 				for index < len(attr.Data) {
 					item := new(NexthopGroupItem)
-					item.ID = native.Uint32(attr.Data[index:])
-					item.Weight = attr.Data[index+1]
-					item.WeighHigh = attr.Data[index+2]
+					item.ID = native.Uint32(attr.Data[index : index+4])
+					item.Weight = attr.Data[index+4]
+					item.WeighHigh = attr.Data[index+5]
 					index += 8
 					nh.Group = append(nh.Group, item)
 				}
@@ -247,6 +249,7 @@ func parseNhmsg(m []byte) (*Nexthop, error) {
 
 	rtAttrs := make([]*nl.RtAttr, 0, len(rawAttrs))
 	for _, rawAttr := range rawAttrs {
+		fmt.Println(rawAttr.Attr.Type)
 		rtAttrs = append(rtAttrs, nl.NewRtAttr(int(rawAttr.Attr.Type), rawAttr.Value))
 	}
 
@@ -254,13 +257,17 @@ func parseNhmsg(m []byte) (*Nexthop, error) {
 		Protocol: RouteProtocol(msg.Protocol),
 	}
 
+	fmt.Printf("msg has %d attrs\n", len(rtAttrs))
+
 	decodeNexthopAttrs(nh, rtAttrs)
 
 	return nh, nil
 }
 
 func deriveFamilyFromNexthop(nh *Nexthop) uint8 {
-	if nh.Gateway == nil || nh.Gateway.To4() != nil {
+	if nh.Group != nil {
+		return FAMILY_ALL
+	} else if nh.Gateway == nil || nh.Gateway.To4() != nil {
 		return FAMILY_V4
 	}
 	return FAMILY_V6
